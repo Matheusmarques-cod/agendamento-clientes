@@ -17,14 +17,17 @@ public class Agendamento {
     private String telefone;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private Medico medico;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private Exame exame;
 
     private LocalDateTime dataHora;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private Status status;
 
     public enum Status {

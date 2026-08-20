@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClinicaPlus · Agendamentos</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --bg: #F0F4F8;
+      --surface: #FFFFFF;
+      --surface2: #E8EFF7;
+      --primary: #1B4F8A;
+      --primary-light: #2563EB;
+      --accent: #0EA5E9;
+      --accent-soft: #E0F2FE;
+      --text: #1E293B;
+      --text-muted: #64748B;
+      --border: #CBD5E1;
+      --danger: #EF4444;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --info: #3B82F6;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-lg: 0 8px 32px rgba(27,79,138,.14);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: 240px; height: 100vh;
+      background: var(--primary);
+      display: flex; flex-direction: column;
+      padding: 28px 0;
+      z-index: 100;
+    }
+
+    .sidebar-logo {
+      padding: 0 24px 28px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+
+    .sidebar-logo span {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: -.3px;
+    }
+
+    .sidebar-logo em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.4);
+      padding: 20px 24px 8px;
+    }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 24px;
+      color: rgba(255,255,255,.65);
+      font-size: 14px; font-weight: 500;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all .18s;
+      text-decoration: none;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      color: #fff;
+      background: rgba(255,255,255,.08);
+      border-left-color: var(--accent);
+    }
+
+    .nav-item svg { flex-shrink: 0; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 20px 24px;
+      border-top: 1px solid rgba(255,255,255,.12);
+    }
+
+    .user-info { display: flex; align-items: center; gap: 10px; }
+
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #fff; font-size: 14px;
+    }
+
+    .user-name { font-size: 13px; color: #fff; font-weight: 500; }
+    .user-role { font-size: 11px; color: rgba(255,255,255,.45); }
+
+    /* ── MAIN ── */
+    .main {
+      margin-left: 240px;
+      padding: 32px 36px;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+
+    .page-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      color: var(--primary);
+      line-height: 1.2;
+    }
+
+    .page-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px; font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      border: none; cursor: pointer;
+      transition: all .18s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--primary-light);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(37,99,235,.3);
+    }
+    .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+    .btn-outline {
+      background: var(--surface);
+      color: var(--text-muted);
+      border: 1.5px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--primary-light); color: var(--primary-light); }
+
+    .btn-excel {
+      background: #166534; color: #fff;
+      box-shadow: 0 2px 8px rgba(22,101,52,.25);
+    }
+    .btn-excel:hover { background: #14532d; transform: translateY(-1px); }
+
+    .btn-pdf {
+      background: #991b1b; color: #fff;
+      box-shadow: 0 2px 8px rgba(153,27,27,.25);
+    }
+    .btn-pdf:hover { background: #7f1d1d; transform: translateY(-1px); }
+
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+
+    .btn-sm { padding: 5px 11px; font-size: 12px; }
+
+    /* ── STATS CARDS ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 16px;
+    }
+
+    .stat-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .stat-value { font-size: 26px; font-weight: 700; line-height: 1; }
+    .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── FILTERS CARD ── */
+    .filter-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    .filter-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px; font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .field input, .field select {
+      width: 100%;
+      padding: 9px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border .18s;
+    }
+
+    .field input:focus, .field select:focus {
+      border-color: var(--primary-light);
+      background: #fff;
+    }
+
+    .search-wrap { position: relative; }
+    .search-wrap svg {
+      position: absolute; left: 12px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .search-wrap input { padding-left: 38px; }
+
+    /* ── TABLE ── */
+    .table-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--surface2);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .table-title { font-size: 15px; font-weight: 600; }
+    .table-count {
+      font-size: 12px; color: var(--text-muted);
+      background: var(--surface2);
+      padding: 3px 10px; border-radius: 999px;
+    }
+
+    .export-group { display: flex; gap: 8px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      padding: 11px 18px;
+      text-align: left;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--surface2);
+      transition: background .12s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #F8FAFC; }
+
+    td {
+      padding: 13px 18px;
+      font-size: 13.5px;
+      vertical-align: middle;
+    }
+
+    .patient-name { font-weight: 600; }
+    .patient-cpf { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11.5px; font-weight: 600;
+    }
+
+    .badge-agendado   { background: #EFF6FF; color: #1d4ed8; }
+    .badge-confirmado { background: #ECFDF5; color: #065f46; }
+    .badge-cancelado  { background: #FEF2F2; color: #991b1b; }
+    .badge-realizado  { background: #F3F4F6; color: #374151; }
+
+    .badge-exame {
+      background: var(--accent-soft);
+      color: #0369a1;
+      font-size: 11.5px; font-weight: 600;
+      padding: 3px 10px; border-radius: 999px;
+    }
+
+    .actions { display: flex; gap: 6px; }
+
+    /* ── EMPTY ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state svg { margin-bottom: 12px; opacity: .35; }
+    .empty-state p { font-size: 14px; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,.45);
+      backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 16px;
+      width: 560px; max-width: 95vw;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      transform: translateY(12px);
+      transition: transform .2s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    .modal-head {
+      padding: 24px 28px 16px;
+      border-bottom: 1px solid var(--surface2);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .modal-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px; color: var(--primary);
+    }
+
+    .modal-close {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--bg); border: none;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted);
+      transition: background .15s;
+    }
+    .modal-close:hover { background: var(--surface2); }
+
+    .modal-body { padding: 24px 28px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-full { grid-column: 1 / -1; }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label {
+      font-size: 12px; font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: .5px;
+    }
+    .form-group input, .form-group select {
+      padding: 9px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; color: var(--text);
+      outline: none; transition: border .18s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--primary-light);
+    }
+
+    .modal-foot {
+      padding: 16px 28px 24px;
+      display: flex; gap: 10px; justify-content: flex-end;
+    }
+
+    /* ── TOAST ── */
+    .toast-wrap {
+      position: fixed; bottom: 28px; right: 28px;
+      display: flex; flex-direction: column; gap: 10px;
+      z-index: 9999;
+    }
+
+    .toast {
+      background: var(--primary);
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px; font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      display: flex; align-items: center; gap: 10px;
+      animation: slideIn .25s ease;
+    }
+    .toast.success { background: #065f46; }
+    .toast.error   { background: #991b1b; }
+
+    @keyframes slideIn {
+      from { transform: translateX(40px); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+
+    /* ── LOADING ── */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2.5px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1100px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .filter-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .sidebar { width: 60px; }
+      .sidebar-logo span, .nav-item span, .sidebar-label,
+      .user-name, .user-role { display: none; }
+      .main { margin-left: 60px; padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ────────────────── SIDEBAR ────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span>Clinica<em>Plus</em></span>
+  </div>
+
+  <div class="sidebar-label">Menu</div>
+  <a class="nav-item active" href="#">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span>Agendamentos</span>
+  </a>
+  <a class="nav-item" href="#">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Pacientes</span>
+  </a>
+  <a class="nav-item" href="#">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    <span>Dashboard</span>
+  </a>
+  <a class="nav-item" href="#">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93A10 10 0 0 1 19.07 19.07"/></svg>
+    <span>Relatórios</span>
+  </a>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="avatar">R</div>
+      <div>
+        <div class="user-name">Recepção</div>
+        <div class="user-role">Administrador</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ────────────────── MAIN ────────────────── -->
+<main class="main">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Agendamentos</div>
+      <div class="page-subtitle">Gerencie todos os agendamentos da clínica</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="abrirModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Agendamento
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#EFF6FF">
+        <svg width="24" height="24" fill="none" stroke="#1d4ed8" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div>
+        <div class="stat-value" id="statTotal">—</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#ECFDF5">
+        <svg width="24" height="24" fill="none" stroke="#065f46" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div>
+        <div class="stat-value" id="statConfirmado">—</div>
+        <div class="stat-label">Confirmados</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#FFFBEB">
+        <svg width="24" height="24" fill="none" stroke="#b45309" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div>
+        <div class="stat-value" id="statAgendado">—</div>
+        <div class="stat-label">Agendados</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#FEF2F2">
+        <svg width="24" height="24" fill="none" stroke="#991b1b" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </div>
+      <div>
+        <div class="stat-value" id="statCancelado">—</div>
+        <div class="stat-label">Cancelados</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-card">
+    <div class="filter-row">
+      <div class="field">
+        <label>Busca</label>
+        <div class="search-wrap">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="busca" placeholder="Nome do paciente ou CPF…" oninput="carregarAgendamentos()" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Médico</label>
+        <select id="medico" onchange="carregarAgendamentos()">
+          <option value="">Todos os médicos</option>
+          <option value="DR_CARLOS_SILVA">Dr. Carlos Silva</option>
+          <option value="DRA_ANA_LIMA">Dra. Ana Lima</option>
+          <option value="DR_ROBERTO_SANTOS">Dr. Roberto Santos</option>
+          <option value="DRA_FERNANDA_COSTA">Dra. Fernanda Costa</option>
+          <option value="DR_MARCOS_OLIVEIRA">Dr. Marcos Oliveira</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Exame</label>
+        <select id="exame" onchange="carregarAgendamentos()">
+          <option value="">Todos os exames</option>
+          <option value="HEMOGRAMA">Hemograma</option>
+          <option value="RAIO_X">Raio-X</option>
+          <option value="ULTRASSONOGRAFIA">Ultrassonografia</option>
+          <option value="ELETROCARDIOGRAMA">Eletrocardiograma</option>
+          <option value="RESSONANCIA_MAGNETICA">Ressonância Magnética</option>
+          <option value="TOMOGRAFIA">Tomografia</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="status" onchange="carregarAgendamentos()">
+          <option value="">Todos</option>
+          <option value="AGENDADO">Agendado</option>
+          <option value="CONFIRMADO">Confirmado</option>
+          <option value="CANCELADO">Cancelado</option>
+          <option value="REALIZADO">Realizado</option>
+        </select>
+      </div>
+      <div>
+        <button class="btn btn-outline" onclick="limparFiltros()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Limpar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="table-title">Lista de Agendamentos</span>
+        <span class="table-count" id="contagem">0 registros</span>
+      </div>
+      <div class="export-group">
+        <button class="btn btn-excel btn-sm" onclick="exportarExcel()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Excel
+        </button>
+        <button class="btn btn-pdf btn-sm" onclick="exportarPDF()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          PDF
+        </button>
+      </div>
+    </div>
+
+    <div id="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Paciente</th>
+            <th>Médico</th>
+            <th>Exame</th>
+            <th>Data / Hora</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaCorpo">
+          <tr><td colspan="7"><div class="empty-state">
+            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p>Carregando agendamentos…</p>
+          </div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- ────────────────── MODAL ────────────────── -->
+<div class="modal-overlay" id="modalOverlay" onclick="fecharModalSeFora(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modalTitulo">Novo Agendamento</div>
+      <button class="modal-close" onclick="fecharModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label>Nome do Paciente</label>
+          <input type="text" id="fNome" placeholder="Nome completo" />
+        </div>
+        <div class="form-group">
+          <label>CPF</label>
+          <input type="text" id="fCpf" placeholder="000.000.000-00" oninput="mascaraCPF(this)" maxlength="14" />
+        </div>
+        <div class="form-group">
+          <label>Telefone</label>
+          <input type="text" id="fTelefone" placeholder="(00) 00000-0000" oninput="mascaraTel(this)" maxlength="15" />
+        </div>
+        <div class="form-group">
+          <label>Médico</label>
+          <select id="fMedico">
+            <option value="">Selecione o médico</option>
+            <option value="DR_CARLOS_SILVA">Dr. Carlos Silva</option>
+            <option value="DRA_ANA_LIMA">Dra. Ana Lima</option>
+            <option value="DR_ROBERTO_SANTOS">Dr. Roberto Santos</option>
+            <option value="DRA_FERNANDA_COSTA">Dra. Fernanda Costa</option>
+            <option value="DR_MARCOS_OLIVEIRA">Dr. Marcos Oliveira</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Exame</label>
+          <select id="fExame">
+            <option value="">Selecione o exame</option>
+            <option value="HEMOGRAMA">Hemograma</option>
+            <option value="RAIO_X">Raio-X</option>
+            <option value="ULTRASSONOGRAFIA">Ultrassonografia</option>
+            <option value="ELETROCARDIOGRAMA">Eletrocardiograma</option>
+            <option value="RESSONANCIA_MAGNETICA">Ressonância Magnética</option>
+            <option value="TOMOGRAFIA">Tomografia</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Data e Hora</label>
+          <input type="datetime-local" id="fDataHora" />
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="fStatus">
+            <option value="AGENDADO">Agendado</option>
+            <option value="CONFIRMADO">Confirmado</option>
+            <option value="CANCELADO">Cancelado</option>
+            <option value="REALIZADO">Realizado</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAgendamento()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOASTS ── -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ────────────────── SCRIPTS ────────────────── -->
+<script>
+  // ──────────────────────────────────────────────
+  // CONFIGURAÇÃO
+  // ──────────────────────────────────────────────
+  const API = 'http://localhost:8080/api/agendamentos';
+
+  // Dados simulados para demonstração (sem backend rodando)
+  let dadosDemo = [
+    { id:1, nomePaciente:'João Silva',     cpf:'123.456.789-00', telefone:'(62) 99999-0001', medico:'DR_CARLOS_SILVA',     exame:'HEMOGRAMA',           dataHora:'2026-06-25T08:00:00', status:'AGENDADO'   },
+    { id:2, nomePaciente:'Maria Souza',    cpf:'987.654.321-00', telefone:'(62) 98888-0002', medico:'DRA_ANA_LIMA',        exame:'ULTRASSONOGRAFIA',    dataHora:'2026-06-25T09:30:00', status:'CONFIRMADO' },
+    { id:3, nomePaciente:'Pedro Costa',   cpf:'456.789.123-00', telefone:'(62) 97777-0003', medico:'DR_ROBERTO_SANTOS',   exame:'RAIO_X',              dataHora:'2026-06-26T10:00:00', status:'AGENDADO'   },
+    { id:4, nomePaciente:'Ana Lima',       cpf:'321.654.987-00', telefone:'(62) 96666-0004', medico:'DRA_FERNANDA_COSTA',  exame:'ELETROCARDIOGRAMA',   dataHora:'2026-06-26T14:00:00', status:'REALIZADO'  },
+    { id:5, nomePaciente:'Carlos Mendes', cpf:'654.321.789-00', telefone:'(62) 95555-0005', medico:'DR_MARCOS_OLIVEIRA',  exame:'RESSONANCIA_MAGNETICA',dataHora:'2026-06-27T11:00:00', status:'CANCELADO'  },
+    { id:6, nomePaciente:'Lucia Ferreira',cpf:'111.222.333-44', telefone:'(62) 94444-0006', medico:'DR_CARLOS_SILVA',     exame:'TOMOGRAFIA',          dataHora:'2026-06-28T08:30:00', status:'CONFIRMADO' },
+    { id:7, nomePaciente:'Rafael Nunes',  cpf:'555.666.777-88', telefone:'(62) 93333-0007', medico:'DRA_ANA_LIMA',        exame:'HEMOGRAMA',           dataHora:'2026-06-28T15:00:00', status:'AGENDADO'   },
+  ];
+
+  let modoEdicao = null;
+  let dadosAtivos = [];
+
+  // ──────────────────────────────────────────────
+  // MAPAS DE RÓTULOS
+  // ──────────────────────────────────────────────
+  const MEDICOS = {
+    DR_CARLOS_SILVA:    'Dr. Carlos Silva',
+    DRA_ANA_LIMA:       'Dra. Ana Lima',
+    DR_ROBERTO_SANTOS:  'Dr. Roberto Santos',
+    DRA_FERNANDA_COSTA: 'Dra. Fernanda Costa',
+    DR_MARCOS_OLIVEIRA: 'Dr. Marcos Oliveira',
+  };
+
+  const EXAMES = {
+    HEMOGRAMA:            'Hemograma',
+    RAIO_X:               'Raio-X',
+    ULTRASSONOGRAFIA:     'Ultrassonografia',
+    ELETROCARDIOGRAMA:    'Eletrocardiograma',
+    RESSONANCIA_MAGNETICA:'Ressonância Magnética',
+    TOMOGRAFIA:           'Tomografia',
+  };
+
+  const STATUS_BADGE = {
+    AGENDADO:   'badge-agendado',
+    CONFIRMADO: 'badge-confirmado',
+    CANCELADO:  'badge-cancelado',
+    REALIZADO:  'badge-realizado',
+  };
+
+  const STATUS_DOT = {
+    AGENDADO:   '🔵',
+    CONFIRMADO: '🟢',
+    CANCELADO:  '🔴',
+    REALIZADO:  '⚫',
+  };
+
+  // ──────────────────────────────────────────────
+  // CARREGAR / FILTRAR
+  // ──────────────────────────────────────────────
+  async function carregarAgendamentos() {
+    const busca   = document.getElementById('busca').value.toLowerCase();
+    const medico  = document.getElementById('medico').value;
+    const exame   = document.getElementById('exame').value;
+    const status  = document.getElementById('status').value;
+
+    // Tenta API Java; usa demo se offline
+    let lista;
+    try {
+      const params = new URLSearchParams();
+      if (busca)  params.append('busca', busca);
+      if (medico) params.append('medico', medico);
+      if (exame)  params.append('exame', exame);
+      if (status) params.append('status', status);
+
+      const res = await fetch(`${API}?${params}`, { signal: AbortSignal.timeout(2000) });
+      lista = await res.json();
+    } catch {
+      // Filtra dados demo localmente
+      lista = dadosDemo.filter(a => {
+        const ok_busca  = !busca  || a.nomePaciente.toLowerCase().includes(busca) || a.cpf.includes(busca);
+        const ok_medico = !medico || a.medico === medico;
+        const ok_exame  = !exame  || a.exame  === exame;
+        const ok_status = !status || a.status === status;
+        return ok_busca && ok_medico && ok_exame && ok_status;
+      });
+    }
+
+    dadosAtivos = lista;
+    renderTabela(lista);
+    atualizarStats(lista);
+  }
+
+  function renderTabela(lista) {
+    const tbody = document.getElementById('tabelaCorpo');
+    document.getElementById('contagem').textContent = `${lista.length} registro${lista.length !== 1 ? 's' : ''}`;
+
+    if (!lista.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+        <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <p>Nenhum agendamento encontrado para os filtros selecionados.</p>
+      </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = lista.map((a, i) => `
+      <tr>
+        <td style="color:var(--text-muted);font-size:12px">#${String(a.id).padStart(4,'0')}</td>
+        <td>
+          <div class="patient-name">${a.nomePaciente}</div>
+          <div class="patient-cpf">${a.cpf} · ${a.telefone}</div>
+        </td>
+        <td style="font-size:13px">${MEDICOS[a.medico] || a.medico}</td>
+        <td><span class="badge-exame">${EXAMES[a.exame] || a.exame}</span></td>
+        <td style="font-size:13px">${formatarData(a.dataHora)}</td>
+        <td><span class="badge ${STATUS_BADGE[a.status]}">${STATUS_DOT[a.status]} ${a.status.charAt(0)+a.status.slice(1).toLowerCase()}</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-outline btn-sm" onclick="abrirEdicao(${a.id})" title="Editar">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deletar(${a.id})" title="Excluir">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function atualizarStats(lista) {
+    document.getElementById('statTotal').textContent = lista.length;
+    document.getElementById('statConfirmado').textContent = lista.filter(a => a.status === 'CONFIRMADO').length;
+    document.getElementById('statAgendado').textContent   = lista.filter(a => a.status === 'AGENDADO').length;
+    document.getElementById('statCancelado').textContent  = lista.filter(a => a.status === 'CANCELADO').length;
+  }
+
+  function formatarData(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR') + ' · ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+  }
+
+  // ──────────────────────────────────────────────
+  // MODAL
+  // ──────────────────────────────────────────────
+  function abrirModal() {
+    modoEdicao = null;
+    document.getElementById('modalTitulo').textContent = 'Novo Agendamento';
+    ['fNome','fCpf','fTelefone'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fMedico').value  = '';
+    document.getElementById('fExame').value   = '';
+    document.getElementById('fStatus').value  = 'AGENDADO';
+    document.getElementById('fDataHora').value = '';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function abrirEdicao(id) {
+    const ag = dadosAtivos.find(a => a.id === id) || dadosDemo.find(a => a.id === id);
+    if (!ag) return;
+    modoEdicao = id;
+    document.getElementById('modalTitulo').textContent = 'Editar Agendamento';
+    document.getElementById('fNome').value     = ag.nomePaciente;
+    document.getElementById('fCpf').value      = ag.cpf;
+    document.getElementById('fTelefone').value = ag.telefone;
+    document.getElementById('fMedico').value   = ag.medico;
+    document.getElementById('fExame').value    = ag.exame;
+    document.getElementById('fStatus').value   = ag.status;
+    document.getElementById('fDataHora').value = ag.dataHora ? ag.dataHora.slice(0,16) : '';
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function fecharModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  function fecharModalSeFora(e) {
+    if (e.target === document.getElementById('modalOverlay')) fecharModal();
+  }
+
+  async function salvarAgendamento() {
+    const payload = {
+      nomePaciente: document.getElementById('fNome').value.trim(),
+      cpf:          document.getElementById('fCpf').value.trim(),
+      telefone:     document.getElementById('fTelefone').value.trim(),
+      medico:       document.getElementById('fMedico').value,
+      exame:        document.getElementById('fExame').value,
+      dataHora:     document.getElementById('fDataHora').value,
+      status:       document.getElementById('fStatus').value,
+    };
+
+    if (!payload.nomePaciente || !payload.medico || !payload.exame || !payload.dataHora) {
+      toast('Preencha todos os campos obrigatórios.', 'error'); return;
+    }
+
+    try {
+      const url = modoEdicao ? `${API}/${modoEdicao}` : API;
+      const method = modoEdicao ? 'PUT' : 'POST';
+      await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    } catch {
+      // Modo demo: atualiza localmente
+      if (modoEdicao) {
+        const idx = dadosDemo.findIndex(a => a.id === modoEdicao);
+        if (idx !== -1) dadosDemo[idx] = { ...dadosDemo[idx], ...payload };
+      } else {
+        const novoId = Math.max(...dadosDemo.map(a => a.id)) + 1;
+        dadosDemo.push({ id: novoId, ...payload });
+      }
+    }
+
+    fecharModal();
+    toast(modoEdicao ? 'Agendamento atualizado com sucesso!' : 'Agendamento criado com sucesso!', 'success');
+    carregarAgendamentos();
+  }
+
+  async function deletar(id) {
+    if (!confirm('Deseja realmente excluir este agendamento?')) return;
+    try {
+      await fetch(`${API}/${id}`, { method: 'DELETE', signal: AbortSignal.timeout(2000) });
+    } catch {
+      dadosDemo = dadosDemo.filter(a => a.id !== id);
+    }
+    toast('Agendamento excluído.', 'error');
+    carregarAgendamentos();
+  }
+
+  function limparFiltros() {
+    ['busca','medico','exame','status'].forEach(id => {
+      const el = document.getElementById(id);
+      el.value = '';
+    });
+    carregarAgendamentos();
+  }
+
+  // ──────────────────────────────────────────────
+  // EXPORTAR EXCEL
+  // ──────────────────────────────────────────────
+  function exportarExcel() {
+    if (!dadosAtivos.length) { toast('Sem dados para exportar.', 'error'); return; }
+    const rows = dadosAtivos.map(a => ({
+      'ID':         a.id,
+      'Paciente':   a.nomePaciente,
+      'CPF':        a.cpf,
+      'Telefone':   a.telefone,
+      'Médico':     MEDICOS[a.medico] || a.medico,
+      'Exame':      EXAMES[a.exame]  || a.exame,
+      'Data/Hora':  formatarData(a.dataHora),
+      'Status':     a.status,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Agendamentos');
+    XLSX.writeFile(wb, `agendamentos_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast('Planilha Excel exportada!', 'success');
+  }
+
+  // ──────────────────────────────────────────────
+  // EXPORTAR PDF
+  // ──────────────────────────────────────────────
+  function exportarPDF() {
+    if (!dadosAtivos.length) { toast('Sem dados para exportar.', 'error'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+
+    doc.setFillColor(27, 79, 138);
+    doc.rect(0, 0, 297, 22, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(255,255,255);
+    doc.text('ClinicaPlus · Relatório de Agendamentos', 14, 14);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 200, 14);
+
+    doc.autoTable({
+      startY: 28,
+      head: [['#', 'Paciente', 'CPF', 'Médico', 'Exame', 'Data/Hora', 'Status']],
+      body: dadosAtivos.map(a => [
+        String(a.id).padStart(4,'0'),
+        a.nomePaciente,
+        a.cpf,
+        MEDICOS[a.medico] || a.medico,
+        EXAMES[a.exame]  || a.exame,
+        formatarData(a.dataHora),
+        a.status,
+      ]),
+      headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+      bodyStyles: { fontSize: 8.5 },
+      alternateRowStyles: { fillColor: [240, 244, 248] },
+      styles: { font: 'helvetica' },
+    });
+
+    doc.save(`agendamentos_${new Date().toISOString().slice(0,10)}.pdf`);
+    toast('PDF exportado com sucesso!', 'success');
+  }
+
+  // ──────────────────────────────────────────────
+  // MÁSCARAS
+  // ──────────────────────────────────────────────
+  function mascaraCPF(el) {
+    let v = el.value.replace(/\D/g,'').slice(0,11);
+    if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/,'$1.$2.$3-$4');
+    else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/,'$1.$2.$3');
+    else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/,'$1.$2');
+    el.value = v;
+  }
+
+  function mascaraTel(el) {
+    let v = el.value.replace(/\D/g,'').slice(0,11);
+    if (v.length === 11) v = v.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3');
+    else if (v.length > 6) v = v.replace(/(\d{2})(\d{4,5})(\d{0,4})/,'($1) $2-$3');
+    else if (v.length > 2) v = v.replace(/(\d{2})(\d+)/,'($1) $2');
+    el.value = v;
+  }
+
+  // ──────────────────────────────────────────────
+  // TOAST
+  // ──────────────────────────────────────────────
+  function toast(msg, tipo = '') {
+    const wrap = document.getElementById('toastWrap');
+    const el = document.createElement('div');
+    el.className = `toast ${tipo}`;
+    el.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> ${msg}`;
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 3200);
+  }
+
+  // ──────────────────────────────────────────────
+  // INIT
+  // ──────────────────────────────────────────────
+  carregarAgendamentos();
+</script>
+</body>
+</html>
