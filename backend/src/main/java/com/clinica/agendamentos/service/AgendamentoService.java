@@ -27,13 +27,9 @@ public class AgendamentoService {
     public Agendamento salvar(Agendamento agendamento) {
         return repository.save(agendamento);
     }
-
-    public void deletar(Long id) {
-        repository.deleteById(id);
-    }
-
     public Agendamento atualizar(Long id, Agendamento dados) {
-        Agendamento ag = repository.findById(id).orElseThrow();
+        Agendamento ag = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Agendamento não encontrado: " + id));
         ag.setNomePaciente(dados.getNomePaciente());
         ag.setCpf(dados.getCpf());
         ag.setTelefone(dados.getTelefone());
@@ -42,5 +38,12 @@ public class AgendamentoService {
         ag.setDataHora(dados.getDataHora());
         ag.setStatus(dados.getStatus());
         return repository.save(ag);
+    }
+
+    public void deletar(Long id) {
+        if (!repository.existsById(id)) {
+            throw new RuntimeException("Agendamento não encontrado: " + id);
+        }
+        repository.deleteById(id);
     }
 }
