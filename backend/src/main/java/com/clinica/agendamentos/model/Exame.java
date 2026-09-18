@@ -2,7 +2,9 @@ package com.clinica.agendamentos.model;
 
 public enum Exame {
     RAIO_X,
-    ULTRASSOM,
+    HEMOGRAMA, 
+    ULTRASSONOGRAFIA,
+    ELLTROCARDIOCRAMA,
     RESONANCIA_MAGNETICA,
-    ELETROCARDIOGRAFIA
+    TOMOGRAFIA
 }

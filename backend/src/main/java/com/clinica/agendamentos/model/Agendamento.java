@@ -17,20 +17,23 @@ public class Agendamento {
     private String telefone;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 50)
+    @Column(name = "medco", length = 50)
     private Medico medico;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 50)
+    @Column(name = "exame", length = 50)
     private Exame exame;
 
     private LocalDateTime dataHora;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column(name = "status", length = 20)
     private Status status;
 
     public enum Status {
-        AGENDADO, CONFIRMADO, CANCELADO, REALIZADO
+        AGENDADO,
+        CONFIRMADO,
+        CANCELADO,
+        REALIZADO
     }
 }

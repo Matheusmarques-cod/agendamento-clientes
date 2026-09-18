@@ -16,10 +16,10 @@ public class AgendamentoService {
     private final AgendamentoRepository repository;
 
     public List<Agendamento> listar(String busca, String medico, String exame, String status) {
-        Medico medicoEnum   = (medico != null && !medico.isEmpty())  ? Medico.valueOf(medico) : null;
-        Exame  exameEnum    = (exame  != null && !exame.isEmpty())   ? Exame.valueOf(exame)   : null;
-        Status statusEnum   = (status != null && !status.isEmpty())  ? Status.valueOf(status) : null;
-        String buscaFiltro  = (busca  != null && !busca.isEmpty())   ? busca                 : null;
+        Medico medicoEnum  = (medico != null && !medico.isEmpty()) ? Medico.valueOf(medico) : null;
+        Exame  exameEnum   = (exame  != null && !exame.isEmpty())  ? Exame.valueOf(exame)   : null;
+        Status statusEnum  = (status != null && !status.isEmpty()) ? Status.valueOf(status) : null;
+        String buscaFiltro = (busca  != null && !busca.isEmpty())  ? busca                 : null;
 
         return repository.filtrar(buscaFiltro, medicoEnum, exameEnum, statusEnum);
     }
@@ -27,6 +27,7 @@ public class AgendamentoService {
     public Agendamento salvar(Agendamento agendamento) {
         return repository.save(agendamento);
     }
+
     public Agendamento atualizar(Long id, Agendamento dados) {
         Agendamento ag = repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Agendamento não encontrado: " + id));
